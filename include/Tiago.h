@@ -41,8 +41,8 @@
 #include <pthread.h>
 
 #include "SkeletonPoints.h"
-#include "MWClosestPoint.h"
 #include "TiagoJointController.h"
+#include "Point3D.h"
 
 #include <SocketClient.h>
 
@@ -51,6 +51,7 @@
 class Tiago {
 	public:
 		Tiago();
+		virtual ~Tiago();
 		static void * moveArm(void * t);
 		void moveArmThread();
 		bool isMoving();
@@ -62,7 +63,7 @@ class Tiago {
 		void mutexLock();
 		void mutexUnlock();
 
-		void detectTiagoCommands(SkeletonPoints* sp, int afa, short depthMat[], closest_point::IntPoint3D& closest);
+		void detectTiagoCommands(SkeletonPoints* sp, int afa, short depthMat[], Point3D* closest);
 		void detectTiagoCommands(SkeletonPoints* sp, int afa);
 		int  getMeanValue(short depthMat[], cv::Point& p);
 		int  getMedianaVector(int vector[]);
@@ -84,7 +85,7 @@ class Tiago {
 		void moveBase(int walkDirection, int walkAngle);
 		void initialPosition();
 
-		TiagoJointController jointController;
+		TiagoJointController * jointController;
 			
 		bool moving;
 		float angShoulder, angElbow;

@@ -10,7 +10,7 @@ GestualListener::~GestualListener() {
 }
 
 void GestualListener::onEvent(SkeletonPoints * sp, int afa) {
-	printf("Recebi o esqueleto\n");
+	//printf("Recebi o esqueleto\n");
 	
 	//tiago->detectTiagoCommands(sp, afa*subSample, depth, closest);
 	tiago->detectTiagoCommands(sp, afa);

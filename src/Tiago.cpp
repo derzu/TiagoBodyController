@@ -4,6 +4,8 @@
 
 #include <Skeleton.h>
 
+#define ROSRUN 0
+
 Tiago::Tiago() {
 	moving = false;
 	t = NULL;
@@ -23,18 +25,27 @@ Tiago::Tiago() {
         //socketC->conecta();
         socketC = NULL;
 
-        // Init the joint controller, false means that it has a hand and not a gripper.
-        jointController = TiagoJointController(false);
-        
-        initialPosition();
+        if (ROSRUN) {
+		// Init the joint controller, false means that it has a hand and not a gripper.
+		jointController = new TiagoJointController(false);
+		
+		initialPosition();
+        }
+        else 
+	        jointController = NULL;
 }
 
+
+Tiago::~Tiago() {
+	if (jointController)
+		delete jointController;
+}
 
 void Tiago::initialPosition() {
 	int r;
 
 	// Send all joints controllers to their intial zero position.
-	jointController.execute(true);
+	jointController->execute(true);
 }
 
 float Tiago::getAngElbow() {
@@ -111,7 +122,7 @@ void * Tiago::moveArm(void * t) {
 	printf("%s\n", comando);
 	r = system(comando);*/
 	sprintf(jointStr, "arm_%d_joint", joint);
-	tiago->jointController.setGoal(jointStr, ang);
+	tiago->jointController->setGoal(jointStr, ang);
 
 	joint = 2;
 	ang = tiago->getAngShoulder();
@@ -121,9 +132,9 @@ void * Tiago::moveArm(void * t) {
 	printf("%s\n", comando);
 	r = system(comando);*/
 	sprintf(jointStr, "arm_%d_joint", joint);
-	tiago->jointController.setGoal(jointStr, ang);
+	tiago->jointController->setGoal(jointStr, ang);
 	
-	tiago->jointController.execute();
+	tiago->jointController->execute();
 
 	tiago->setMoving(false);
 	tiago->mutexUnlock();
@@ -209,6 +220,9 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa) {
 	static int c=0;
 	c++;
 
+
+	printf("sp->head.z=%6d  left/rightHand=%6d::%6d\n", sp->head.z, sp->leftHand.z, sp->rightHand.z);
+
 	// mao esquerda esticada e afastada do corpo, comandos ativados.
 	if (sp->leftHand.x!=0 && sp->leftHand.x < sp->center.x - afa*2 && sp->leftHand.y > sp->center.y + afa)
 	{
@@ -230,11 +244,13 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa) {
 		
 		if (tronco!=lastTronco && tronco!=NONE) {
 			printf("%d::TRONCO::%s\n", c, tronco==UP? "UP" : "DOWN");
-			if (tronco==UP)
-				jointController.setGoal("torso_lift_joint", 1); //systemThread("rosrun play_motion move_joint torso_lift_joint  1 0.2");
-			else
-				jointController.setGoal("torso_lift_joint", -1); //systemThread("rosrun play_motion move_joint torso_lift_joint -1 0.2");
-			jointController.execute();
+			if (ROSRUN) {
+				if (tronco==UP)
+					jointController->setGoal("torso_lift_joint", 1); //systemThread("rosrun play_motion move_joint torso_lift_joint  1 0.2");
+				else
+					jointController->setGoal("torso_lift_joint", -1); //systemThread("rosrun play_motion move_joint torso_lift_joint -1 0.2");
+				jointController->execute();
+			}
 			
 		}
 		
@@ -261,8 +277,8 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa) {
 				//printf("ANG::COTOVELO:: MAO ::%.1f\n\n", angElbow);
 			}
 
-
-			moveArmThread();
+			if (ROSRUN)
+				moveArmThread();
 		}
 
 	}
@@ -282,6 +298,17 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa) {
 				
 			walkAngle = NONE;
 			
+			/*float d1 = Skeleton::euclideanDist(sp->rightHand, closestCv);
+			float d2 = Skeleton::euclideanDist(sp->leftHand, closestCv);
+
+			walkAngle = -1;		
+			if (d1<70)
+				walkAngle = LEFT;
+			else if (d2<70)
+				walkAngle = RIGHT;
+			else
+				walkAngle = NONE;*/
+			
 			//if (walkAngle != -1)
 			//	walkAngleQ[walkAngleH++ % QUEUE_SIZE] = walkAngle;
 			//walkAngle = getModeVector(walkAngleQ);
@@ -289,15 +316,38 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa) {
 			//printf("dists::%6.1f::%6.1f::%9s\n", d1, d2, walkAngle==RIGHT ? "DIREITA" : walkAngle==LEFT ? "ESQUERDA" : "NONE");
 			//printf("walkAngle::%9s\n\n", walkAngle==RIGHT ? "DIREITA" : walkAngle==LEFT ? "ESQUERDA" : "NONE");
 			
-			moveBase(walkDirection, walkAngle);
+			if(ROSRUN)
+				moveBase(walkDirection, walkAngle);
+			
+			int profRight = sp->rightShoulder.z;
+			int profLeft  = sp->leftShoulder.z;
+			
+
+			int diff =  profRight - profLeft;
+			walkAngle = -1;
+			if (profRight>0 && profLeft>0) {
+				if (diff > 150)
+					walkAngle = RIGHT;
+				else if (diff < -150)
+					walkAngle = LEFT;
+				else
+					walkAngle = NONE;
+				
+				if (walkAngle != -1)
+					walkAngleQ[walkAngleH++ % QUEUE_SIZE] = walkAngle;
+				walkAngle = getModeVector(walkAngleQ);
+			}
+			if (walkAngle != -1) {
+				printf("profundidade: %4d %4d %5d %8s %8s\n", profRight, profLeft, diff, diff > 150 ? "DIREITA" : diff<-150 ? "ESQUERDA" : "NONE",  walkAngle==RIGHT ? "DIREITA" : walkAngle==LEFT ? "ESQUERDA" : "NONE");
+			}
 		}
 }
 
 
-void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, short depthMat[], closest_point::IntPoint3D& closest) {
+void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, short depthMat[], Point3D* closest) {
 	static int c=0;
 	c++;
-	cv::Point closestCv = cv::Point(closest.X, closest.Y);
+	cv::Point closestCv = cv::Point(closest->x, closest->y);
 return;
 	// mao esquerda esticada e afastada do corpo, comandos ativados.
 	if (sp->leftHand.x!=0 && sp->leftHand.x < sp->center.x - afa*2 && sp->leftHand.y > sp->center.y + afa)
@@ -321,10 +371,11 @@ return;
 		if (tronco!=lastTronco && tronco!=NONE) {
 			printf("%d::TRONCO::%s\n", c, tronco==UP? "UP" : "DOWN");
 			if (tronco==UP)
-				jointController.setGoal("torso_lift_joint", 1); //systemThread("rosrun play_motion move_joint torso_lift_joint  1 0.2");
+				jointController->setGoal("torso_lift_joint", 1); //systemThread("rosrun play_motion move_joint torso_lift_joint  1 0.2");
 			else
-				jointController.setGoal("torso_lift_joint", -1); //systemThread("rosrun play_motion move_joint torso_lift_joint -1 0.2");
-			jointController.execute();
+				jointController->setGoal("torso_lift_joint", -1); //systemThread("rosrun play_motion move_joint torso_lift_joint -1 0.2");
+			if (ROSRUN)
+				jointController->execute();
 			
 		}
 		
@@ -428,7 +479,7 @@ void Tiago::moveBase(int walkDirection, int walkAngle) {
 	if (r<0)
 		printf("Erro enviando socket");
 	return;
-	
+	/*
 	// se for igual nao reenvia o comando.
 	if (lastWalkDirection == walkDirection && lastWalkAngle==walkAngle)
 		return;
@@ -446,7 +497,7 @@ void Tiago::moveBase(int walkDirection, int walkAngle) {
 		systemThread("python scripts/right.py");
 	else if (walkAngle==LEFT)
 		systemThread("python scripts/left.py");
-
+*/
 /*
 	// mata o processo anterior
 	systemThread("killall -9 rostopic");

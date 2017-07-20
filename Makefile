@@ -19,10 +19,10 @@ USED_LIBS += OpenNI2
 #if DEPTH camera like Orbbec Astra, or Asus Xtion add this flag DEPTH. If not comment the following line
 CFLAGS += -DDEPTH
 
-EXE_NAME = TiagoGestualController
+EXE_NAME = TiagoBodyController
 
 #ROS
-ROS = -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -lactionlib
+ROS = -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib,--as-needed -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -lactionlib
 
 #opencv
 CFLAGS +=  -g -std=c++11 
