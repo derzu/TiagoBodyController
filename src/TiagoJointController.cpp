@@ -1,10 +1,3 @@
-// C++ standard headers
-#include <exception>
-#include <string>
-
-// Boost headers
-#include <boost/shared_ptr.hpp>
-
 // ROS headers
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
@@ -19,7 +12,7 @@
  *  @author derzu
  *
  *  Compile isolated this file :
- *  g++ TiagoJointController.cpp -o TiagoJointController -I/opt/ros/indigo/include -I../include/ -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -pthread -lactionlib
+ *  g++ TiagoJointController.cpp -o TiagoJointController -I/opt/ros/indigo/include -I../include/ -I. -Iinclude/ -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -pthread -lactionlib
  *
  *  If you dont know the joints and the possible values test with the rqt_joint_trajectory_controller:
  *  $ rosrun rqt_joint_trajectory_controller rqt_joint_trajectory_controller

@@ -36,15 +36,10 @@
 #define SHOULDER_45  0.78
 #define ORIGIN 0
 
-#include <thread>
-#include <mutex>
-#include <pthread.h>
-
 #include "SkeletonPoints.h"
 #include "TiagoJointController.h"
+#include "TiagoBaseController.h"
 #include "Point3D.h"
-
-#include <SocketClient.h>
 
 #define QUEUE_SIZE 3
 
@@ -53,32 +48,23 @@ class Tiago {
 		Tiago();
 		virtual ~Tiago();
 		static void * moveArm(void * t);
-		void moveArmThread();
 		bool isMoving();
 		float getAngElbow();
 		float getAngShoulder();
 		void setMoving(bool m);
 		void setAngElbow(float ang);
 		void setAngShoulder(float ang);
-		void mutexLock();
-		void mutexUnlock();
 
-		void detectTiagoCommands(SkeletonPoints* sp, int afa, short depthMat[], Point3D* closest);
-		void detectTiagoCommands(SkeletonPoints* sp, int afa);
-		int  getMeanValue(short depthMat[], cv::Point& p);
+		void detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D *closest);
 		int  getMedianaVector(int vector[]);
 		int  getModeVector(int vector[]);
-
-		
-		void systemThread(const char * command);
-		static void * systemThread2(void * command);
 		
 		// Directions Constants from the base movements
 		static const int NONE  = 0;
 		static const int RIGHT = 1;
 		static const int LEFT  = 2;
-		static const int FRONT = 1;
-		static const int BACK  = 2;
+		static const int FORWARD = 1;
+		static const int BACKWARD= 2;
 		static const int UP    = 1;
 		static const int DOWN  = 2;
 	private:
@@ -86,6 +72,7 @@ class Tiago {
 		void initialPosition();
 
 		TiagoJointController * jointController;
+		TiagoBaseController * baseController;
 			
 		bool moving;
 		float angShoulder, angElbow;
@@ -95,12 +82,6 @@ class Tiago {
 		int walkAngle, lastWalkAngle;
 		int walkAngleQ[QUEUE_SIZE]; // vector to smoth the directions
 		unsigned char walkAngleH; // head
-		
-	        SocketClient *socketC;
-		std::thread * t;
-		std::mutex mtx;
-		pthread_t thread1;
-		pthread_t thread2;
 };
 
 
