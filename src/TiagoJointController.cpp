@@ -48,6 +48,8 @@ void TiagoJointController::init() {
 
 	ROS_INFO("Starting TiagoJointController");
 
+	n = new ros::NodeHandle();
+
 	// Precondition: Valid clock
 	if (!ros::Time::waitForValid(ros::WallDuration(10.0))) // NOTE: Important when using simulated clock
 	{
@@ -70,6 +72,8 @@ void TiagoJointController::init() {
 }
 
 TiagoJointController::~TiagoJointController() {
+	if (n)
+		delete n;
 }
 
 
@@ -176,11 +180,11 @@ void TiagoJointController::initGoal(control_msgs::FollowJointTrajectoryGoal &goa
 	for (int j = 0; j < size; ++j)
 	{
 		goal.trajectory.points[index].positions[j] = 0.0;
-		goal.trajectory.points[index].velocities[j] = 0.5;
+		goal.trajectory.points[index].velocities[j] = 0.25;
 	}
 	
 	// To be reached 2 second after starting along the trajectory
-	goal.trajectory.points[index].time_from_start = ros::Duration(1.0);
+	goal.trajectory.points[index].time_from_start = ros::Duration(2.0);
 }
 
 
@@ -210,6 +214,18 @@ void TiagoJointController::createClients()
 
 	if ( iterations == max_iterations )
 		throw std::runtime_error("Error in createClients: arm controller action server not available");
+		
+	//cmd_pub = n->advertise<trajectory_msgs::JointTrajectory>("set_joint_trajectory",100);
+	//cmd_pub = n->advertise<trajectory_msgs::JointTrajectory>("controller_manager/",100);
+	cmd_pub[ARM]   = n->advertise<trajectory_msgs::JointTrajectory>("arm_controller/command",1000);
+	cmd_pub[TORSO] = n->advertise<trajectory_msgs::JointTrajectory>("torso_controller/command",1000);
+	cmd_pub[HEAD]  = n->advertise<trajectory_msgs::JointTrajectory>("head_controller/command",1000);
+	if (gripper)
+		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("gripper_controller/command",1000);
+	else
+		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("hand_controller/command",1000);
+		
+	ros::Rate loop_rate(10);
 }
 
 
@@ -295,12 +311,26 @@ void TiagoJointController::execute(bool sendAll) {
 			printf("Enviando goal %d\n", i);
 			// Sends the command to start the given trajectory 1s from now
 			goals[i].trajectory.header.stamp = ros::Time::now();// + ros::Duration(1.0);
-			clients[i]->sendGoal(goals[i]);
+			//clients[i]->sendGoal(goals[i]);
 		}
 	else if (lastController>=0) {
 		// Sends the command to start the given trajectory 1s from now
 		goals[lastController].trajectory.header.stamp = ros::Time::now();// + ros::Duration(1.0);
-		clients[lastController]->sendGoal(goals[lastController]);
+		
+		cmd_pub[lastController].publish(goals[lastController].trajectory);
+		ros::spinOnce();
+		//sleep(1);
+		cmd_pub[lastController].publish(goals[lastController].trajectory);
+		ros::spinOnce();
+		//sleep(1);
+		//clients[lastController]->sendGoal(goals[lastController]);
+		
+		// Wait for trajectory execution
+		/*while( !clients[lastController]->getState().isDone() && ros::ok())
+		{
+			printf("Dormindo goal \n");
+			ros::Duration(1).sleep(); // sleep for four seconds
+		}*/
 	}
 	
 	// Wait for trajectory execution
@@ -316,7 +346,7 @@ void TiagoJointController::execute(bool sendAll) {
  * Excute the goals of one client
  **/
 void TiagoJointController::execute() {
-	execute(this->sendAll); // default is false
+	execute(false); // default is false
 }
 
 using namespace std;
@@ -336,7 +366,7 @@ int mainTest(int argc, char** argv)
 		controller->execute();
 	}
 	else {
-		printf("Usage examples:\n\tarm_1_joint 1.55\n\thead_2_joint 1.0\n\ttorso_lift_joint 0.33\n\thand_1_joint 1\n\tgripper_right_joint 0\n\tquit\n\n");
+		printf("Usage examples:\n\tarm_1_joint 1.55\n\thead_2_joint 1.0\n\ttorso_lift_joint 0.33\n\thand_index_joint 1\n\tgripper_right_joint 0\n\tquit\n\n");
 		char joint[20];
 		float f;
 	

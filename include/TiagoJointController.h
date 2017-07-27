@@ -52,6 +52,10 @@ class TiagoJointController {
 		control_msgs::FollowJointTrajectoryGoal initHandGoal();
 		control_msgs::FollowJointTrajectoryGoal initGripperGoal();
 		void createClients();
+		
+		ros::NodeHandle *n;
+		
+		ros::Publisher cmd_pub[TOT];
 				
 		// Index of the last controller setted
 		int lastController;

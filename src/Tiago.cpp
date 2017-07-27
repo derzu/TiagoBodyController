@@ -4,7 +4,7 @@
 
 #include <Skeleton.h>
 
-#define ROSRUN 1
+#define ROSRUN 0
 
 Tiago::Tiago() {
 	moving = false;
@@ -74,14 +74,21 @@ void Tiago::setAngShoulder(float ang) {
 }
 
 
-void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) {
+std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) {
 	static int c=0;
 	c++;
+	std::vector<cv::Rect> * recs = new std::vector<cv::Rect>();
+	cv::Rect r;
+	
 	//printf("sp->head.z=%6d  left/rightHand=%6d::%6d\n", sp->head.z, sp->leftHand.z, sp->rightHand.z);
+
+	r = cv::Rect((sp->center.x - afa*2)-200, sp->center.y + afa, 200, 200);
+	recs->push_back(r);
 
 	// mao esquerda esticada e afastada do corpo, comandos ativados.
 	if (sp->leftHand.x!=0 && sp->leftHand.x < sp->center.x - afa*2 && sp->leftHand.y > sp->center.y + afa)
 	{
+		printf("ACEITA COMANDOS\n");
 		// TORSO
 		// media dos dois ombros atual
 		int y1 = (sp->rightShoulder.y + sp->leftShoulder.y)/2; 
@@ -140,7 +147,7 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) 
 	}
 
 	// mao esquerda afastada do corpo, e da linha centra para baixo.
-	if (sp->leftHand.x!=0 && sp->leftHand.x < (sp->center.x - afa*1.5) && sp->leftHand.y > sp->center.y - afa/2)
+	if (sp->leftHand.x!=0 && sp->leftHand.x < (sp->center.x - afa*1.0) && sp->leftHand.y > sp->center.y - afa/2)
 	// se a mao esquerda estiver mais a esquerda do que o ombro, e ambos estiverem acima da linha da cintura
 	//if (sp->leftHand.x!=0 && sp->leftElbow.x!=0 && sp->leftHand.y < sp->center.y-afa && sp->leftElbow.y < sp->center.y )
 	{
@@ -149,9 +156,9 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) 
 		int diff =  profRight - profLeft;
 		walkAngle = -1;
 		if (profRight>0 && profLeft>0) {
-			if (diff > 135)
+			if (diff > 125)
 				walkAngle = RIGHT;
-			else if (diff < -135)
+			else if (diff < -125)
 				walkAngle = LEFT;
 			else
 				walkAngle = NONE;
@@ -159,31 +166,47 @@ void Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) 
 			if (walkAngle != -1)
 				walkAngleQ[walkAngleH++ % QUEUE_SIZE] = walkAngle;
 			walkAngle = getModeVector(walkAngleQ);
+			if (walkAngle==RIGHT || walkAngle==LEFT)
+				printf("walk angle::%s\n", walkAngle == RIGHT? "RIGHT" : walkAngle==LEFT ? "LEFT" : "NONE");
 		}
 		if (walkAngle != -1) {
 			//printf("profundidade: %4d %4d %5d %8s %8s\n", profRight, profLeft, diff, diff > 150 ? "DIREITA" : diff<-150 ? "ESQUERDA" : "NONE",  walkAngle==RIGHT ? "DIREITA" : walkAngle==LEFT ? "ESQUERDA" : "NONE");
 		}
 		
 			
-		printf("diff1=%5d diff2=%5d\n", abs(sp->leftHand.y - sp->leftElbow.y), abs(sp->leftHand.x - sp->leftElbow.x));
+		//printf("diff1=%5d diff2=%5d\n", abs(sp->leftHand.y - sp->leftElbow.y), abs(sp->leftHand.x - sp->leftElbow.x));
 		walkDirection = NONE;
+		
+		r = cv::Rect(sp->leftElbow.x-200, sp->leftElbow.y-40, 200-50, 80);
+		recs->push_back(r);
+
+		r = cv::Rect(sp->center.x - afa*2, sp->center.y - afa/2,  (sp->center.x - afa*1.0) - (sp->center.x - afa*2),  (sp->center.y + afa*1.5) - (sp->center.y - afa/2) );
+		recs->push_back(r);
+		
 		// se a mao e o ombro estiverem quase na mesma linha, e os x distantes.
-		if (abs(sp->leftHand.y - sp->leftElbow.y)<30  &&  abs(sp->leftHand.x - sp->leftElbow.x)>50) {
+		if (abs(sp->leftHand.y - sp->leftElbow.y)<40  &&  abs(sp->leftHand.x - sp->leftElbow.x)>50) {
 			walkDirection = BACKWARD;
+			printf("BACKWARD\n");
 		}
 		// se a mao estiver afastada no y, mas nao muito AND mao proximo da linha da cintura.
-		else if (sp->leftHand.x > (sp->center.x - afa*4) && (sp->leftHand.y < (sp->center.y + afa*1.5)) ) {
-			printf("diff3=%5d\n", (int)Skeleton::euclideanDist(*closest, sp->leftHand));
+		else if (sp->leftHand.x > (sp->center.x - afa*2) && (sp->leftHand.y < (sp->center.y + afa*1.5)) ) {
+			//printf("diff3=%5d\n", (int)Skeleton::euclideanDist(*closest, sp->leftHand));
 			// se a mao tiver perto do ponto mais proximo
-			if (Skeleton::euclideanDist(*closest, sp->leftHand) < 40)
+			if (Skeleton::euclideanDist(*closest, sp->leftHand) < 40) {
 				walkDirection = FORWARD;
+				printf("FORWARD\n");
+			}
 		}
-		printf("walkDirection=%2d, walkAngle=%2d\n", walkDirection, walkAngle);
+		//else
+		//	printf("NONE\n");
+		//printf("walkDirection=%2d, walkAngle=%2d\n", walkDirection, walkAngle);
 
 		
 		if(ROSRUN)
 			moveBase(walkDirection, walkAngle);
 	}
+	
+	return recs;
 }
 
 

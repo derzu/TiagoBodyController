@@ -5,12 +5,13 @@
 #include "SkeletonListener.h"
 #include "Tiago.h"
 
+
 class GestualListener : public SkeletonListener {
 
 	public:
 		GestualListener();
 		virtual ~GestualListener();
-		virtual void onEvent(SkeletonPoints * sp, int afa, Point3D *closest);
+		virtual std::vector<cv::Rect> * onEvent(SkeletonPoints * sp, int afa, Point3D *closest);
 		
 	private:
 		// Pal-robotics Tiago

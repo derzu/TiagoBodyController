@@ -77,8 +77,8 @@ void TiagoBaseController::createClients()
 {
 	ROS_INFO("Creating velocity clients");
 
-	cmd_pub = n->advertise<geometry_msgs::Twist>("/mobile_base_controller/cmd_vel", 100);
-	
+	cmd_pub    = n->advertise<geometry_msgs::Twist>("/mobile_base_controller/cmd_vel", 100);
+
 	ros::Rate loop_rate(10);
 }
 

@@ -40,6 +40,7 @@
 #include "TiagoJointController.h"
 #include "TiagoBaseController.h"
 #include "Point3D.h"
+#include <vector>
 
 #define QUEUE_SIZE 3
 
@@ -55,7 +56,7 @@ class Tiago {
 		void setAngElbow(float ang);
 		void setAngShoulder(float ang);
 
-		void detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D *closest);
+		std::vector<cv::Rect> *detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D *closest);
 		int  getMedianaVector(int vector[]);
 		int  getModeVector(int vector[]);
 		
