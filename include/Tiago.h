@@ -52,9 +52,11 @@ class Tiago {
 		bool isMoving();
 		float getAngElbow();
 		float getAngShoulder();
+		float getAngShoulderFront();
 		void setMoving(bool m);
 		void setAngElbow(float ang);
 		void setAngShoulder(float ang);
+		void setAngShoulderFront(float ang);
 
 		std::vector<cv::Rect> *detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D *closest);
 		int  getMedianaVector(int vector[]);
@@ -74,9 +76,11 @@ class Tiago {
 
 		TiagoJointController * jointController;
 		TiagoBaseController * baseController;
-			
+		
+		bool started;	
 		bool moving;
 		float angShoulder, angElbow;
+		float angShoulderFront;
 		
 		int tronco, lastTronco;
 		int walkDirection, lastWalkDirection;

@@ -4,7 +4,7 @@
 
 #include <Skeleton.h>
 
-#define ROSRUN 0
+#define ROSRUN 1
 
 Tiago::Tiago() {
 	moving = false;
@@ -20,6 +20,8 @@ Tiago::Tiago() {
 	
 	tronco=NONE;
 	lastTronco=-1;
+	
+	started = false;
 	
         if (ROSRUN) {
 		// Init the joint controller, false means that it has a hand and not a gripper.
@@ -57,6 +59,10 @@ float Tiago::getAngShoulder() {
 	return angShoulder;
 }
 
+float Tiago::getAngShoulderFront() {
+	return angShoulderFront;
+}
+
 void Tiago::setMoving(bool m) {
 	moving = m;
 }
@@ -73,12 +79,35 @@ void Tiago::setAngShoulder(float ang) {
 	angElbow = ang;
 }
 
+void Tiago::setAngShoulderFront(float ang) {
+	angShoulderFront = ang;
+}
+
+
+
 
 std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D * closest) {
 	static int c=0;
 	c++;
 	std::vector<cv::Rect> * recs = new std::vector<cv::Rect>();
 	cv::Rect r;
+	
+	
+	// Moviemento que libera a deteccao dos gestos.
+	if (!started && sp->leftShoulder.x!=0) {
+		if (abs(sp->leftHand.y - sp->leftElbow.y)<30 && abs(sp->leftElbow.y - sp->leftShoulder.y)<30 ) {
+			started = true;
+			printf("ACEITA COMANDOS GERAL\n");
+		}
+		else {
+			r = cv::Rect(sp->leftShoulder.x-250, sp->leftShoulder.y-30, 250, 60);
+			recs->push_back(r);
+		}
+	}
+	
+	// se os gestos nao estiverem liberados retorna.
+	if (!started)
+		return recs;
 	
 	//printf("sp->head.z=%6d  left/rightHand=%6d::%6d\n", sp->head.z, sp->leftHand.z, sp->rightHand.z);
 
@@ -88,7 +117,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 	// mao esquerda esticada e afastada do corpo, comandos ativados.
 	if (sp->leftHand.x!=0 && sp->leftHand.x < sp->center.x - afa*2 && sp->leftHand.y > sp->center.y + afa)
 	{
-		printf("ACEITA COMANDOS\n");
+		printf("ACEITA COMANDOS BRACO/TORSO\n");
 		// TORSO
 		// media dos dois ombros atual
 		int y1 = (sp->rightShoulder.y + sp->leftShoulder.y)/2; 
@@ -123,7 +152,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 		// so entra a cada 10c para nao poluir muito o terminal	
 		//if (c%10==0)
 		{
-			float angShoulder, angElbow;
+			float angShoulder, angElbow, angShoulderFront;
 			// Angulo entre ombro e cotovelo
 			if (sp->rightHand.x!=0 && sp->rightElbow.x!=0) {
 				angShoulder = -atan2f(sp->rightElbow.y-sp->rightShoulder.y, sp->rightElbow.x-sp->rightShoulder.x)*180./CV_PI;
@@ -139,7 +168,13 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 				setAngElbow(angElbow);
 				//printf("ANG::COTOVELO:: MAO ::%.1f\n\n", angElbow);
 			}
-
+/*
+			if (sp->rightElbow.z - sp->rightShoulder.z > 100) {
+				angShoulderFront = -atan2f(sp->rightElbow.z-sp->rightShoulder.z, sp->rightElbow.x-sp->rightShoulder.x)*180./CV_PI;
+				setAngShoulderFront(angShoulderFront);
+				printf("ANG::angShoulderFront::%.1f\n\n", angShoulderFront);
+			}
+*/			
 			if (ROSRUN)
 				moveArm(this);
 		}
@@ -237,17 +272,26 @@ void * Tiago::moveArm(void * t) {
 			ang = aElbow-aShoulder; // subtrai o shoulder do ombro
 	}*/
 
-	joint = 4;		
 	ang = tiago->getAngElbow() - tiago->getAngShoulder();
-	ang = ang*ELBOW_90/90.; // conversao do angulo para os valores compativeis com o Tiago.
-	sprintf(jointStr, "arm_%d_joint", joint);
-	tiago->jointController->setGoal(jointStr, ang);
+	
+	// JOINT 3 - gira todo o antebraco.
+	if (ang>0)
+		tiago->jointController->setGoal("arm_3_joint", -CV_PI); // gira o braco para cima
+	else
+		tiago->jointController->setGoal("arm_3_joint", 0); // gira o braco para baixo
 
-	joint = 2;
+	
+	ang = ang*ELBOW_90/90.; // conversao do angulo para os valores compativeis com o Tiago.
+	tiago->jointController->setGoal("arm_4_joint", ang);
+
+
 	ang = tiago->getAngShoulder();
 	ang = ang*SHOULDER_45/45.; // conversao do angulo para os valores compativeis com o Tiago.
-	sprintf(jointStr, "arm_%d_joint", joint);
-	tiago->jointController->setGoal(jointStr, ang);
+	tiago->jointController->setGoal("arm_2_joint", ang);
+	
+	if (tiago->getAngShoulderFront()!=0) {
+		tiago->jointController->setGoal("arm_1_joint", tiago->getAngShoulderFront());
+	}
 	
 	// The 2 goals will be executed simultaneously
 	tiago->jointController->execute();
