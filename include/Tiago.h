@@ -31,9 +31,9 @@
 // Para testar graficamente
 // rosrun rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 
-#define ELBOW_90  1.7
+#define ELBOW_90  1.57
 #define ELBOW_MAX 2.1
-#define SHOULDER_45  0.78
+#define SHOULDER_45  0.785
 #define ORIGIN 0
 
 #include "SkeletonPoints.h"
@@ -57,6 +57,7 @@ class Tiago {
 		void setAngElbow(float ang);
 		void setAngShoulder(float ang);
 		void setAngShoulderFront(float ang);
+		void changeHand(bool open);
 
 		std::vector<cv::Rect> *detectTiagoCommands(SkeletonPoints* sp, int afa, Point3D *closest);
 		int  getMedianaVector(int vector[]);

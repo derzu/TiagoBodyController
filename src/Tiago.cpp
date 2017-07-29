@@ -48,7 +48,13 @@ void Tiago::initialPosition() {
 	int r;
 
 	// Send all joints controllers to their intial zero position.
-	jointController->execute(true);
+	jointController->setGoal("torso_lift", 0.33); // sobe o torso
+	jointController->execute();
+	sleep(2);
+	jointController->setGoal("arm_2_joint", -1.55); // gira o braco para baixo
+	jointController->setGoal("arm_3_joint", -3.14); // gira o braco para fora
+	jointController->setGoal("arm_4_joint", 1.55); // antebraco em 90
+	jointController->execute();
 }
 
 float Tiago::getAngElbow() {
@@ -72,11 +78,11 @@ bool Tiago::isMoving() {
 }
 
 void Tiago::setAngElbow(float ang) {
-	angShoulder = ang;
+	angElbow = ang;
 }
 
 void Tiago::setAngShoulder(float ang) {
-	angElbow = ang;
+	angShoulder = ang;
 }
 
 void Tiago::setAngShoulderFront(float ang) {
@@ -95,7 +101,9 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 	
 	// Moviemento que libera a deteccao dos gestos.
 	if (!started && sp->leftShoulder.x!=0) {
-		if (abs(sp->leftHand.y - sp->leftElbow.y)<30 && abs(sp->leftElbow.y - sp->leftShoulder.y)<30 ) {
+		// os y tem que estar proximos e os x tem que estarem afastados.
+		if (abs(sp->leftHand.y - sp->leftElbow.y)<30 && abs(sp->leftElbow.y - sp->leftShoulder.y)<30 && abs(sp->leftElbow.x - sp->leftHand.x)>30 && abs(sp->leftShoulder.x - sp->leftElbow.x)>30)
+		{
 			started = true;
 			printf("ACEITA COMANDOS GERAL\n");
 		}
@@ -117,7 +125,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 	// mao esquerda esticada e afastada do corpo, comandos ativados.
 	if (sp->leftHand.x!=0 && sp->leftHand.x < sp->center.x - afa*2 && sp->leftHand.y > sp->center.y + afa)
 	{
-		printf("ACEITA COMANDOS BRACO/TORSO\n");
+		//printf("ACEITA COMANDOS BRACO/TORSO\n");
 		// TORSO
 		// media dos dois ombros atual
 		int y1 = (sp->rightShoulder.y + sp->leftShoulder.y)/2; 
@@ -150,7 +158,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 
 		// BRACO / ARM
 		// so entra a cada 10c para nao poluir muito o terminal	
-		//if (c%10==0)
+		if (c%10==0)
 		{
 			float angShoulder, angElbow, angShoulderFront;
 			// Angulo entre ombro e cotovelo
@@ -158,7 +166,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 				angShoulder = -atan2f(sp->rightElbow.y-sp->rightShoulder.y, sp->rightElbow.x-sp->rightShoulder.x)*180./CV_PI;
 				angShoulder = (((int)angShoulder)/5)*5;
 				setAngShoulder(angShoulder);
-				//printf("ANG::COTOVELO::OMBRO::%.1f\n", angShoulder);
+				//printf("\nANG:: OMBRO  ::%.1f\n", angShoulder);
 			}
 
 			// Angulo entre antebraco e cotovelo
@@ -166,15 +174,19 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 				angElbow = -atan2f(sp->rightHand.y-sp->rightElbow.y, sp->rightHand.x-sp->rightElbow.x)*180./CV_PI;
 				angElbow = (((int)angElbow)/5)*5;
 				setAngElbow(angElbow);
-				//printf("ANG::COTOVELO:: MAO ::%.1f\n\n", angElbow);
+				//printf("ANG::COTOVELO::%.1f\n", angElbow);
 			}
-/*
-			if (sp->rightElbow.z - sp->rightShoulder.z > 100) {
-				angShoulderFront = -atan2f(sp->rightElbow.z-sp->rightShoulder.z, sp->rightElbow.x-sp->rightShoulder.x)*180./CV_PI;
+
+			int diffz = sp->rightShoulder.z - sp->rightElbow.z;
+			if (diffz > 10 && sp->rightElbow.z!=0) {
+				if (diffz>1000) diffz/=10;
+				angShoulderFront = -atan2f(diffz*0.6, sp->rightElbow.x - sp->rightShoulder.x)*180./CV_PI;
 				setAngShoulderFront(angShoulderFront);
-				printf("ANG::angShoulderFront::%.1f\n\n", angShoulderFront);
+				//printf("ANG::angShoulderFront::%.1f::%d::%d::%d\n\n", angShoulderFront, diffz, sp->rightShoulder.z, sp->rightElbow.z);
 			}
-*/			
+			else 
+				setAngShoulderFront(0.1);
+			
 			if (ROSRUN)
 				moveArm(this);
 		}
@@ -215,21 +227,23 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 		r = cv::Rect(sp->leftElbow.x-200, sp->leftElbow.y-40, 200-50, 80);
 		recs->push_back(r);
 
-		r = cv::Rect(sp->center.x - afa*2, sp->center.y - afa/2,  (sp->center.x - afa*1.0) - (sp->center.x - afa*2),  (sp->center.y + afa*1.5) - (sp->center.y - afa/2) );
+		r = cv::Rect(sp->center.x - afa*2, sp->center.y - afa/2,  (sp->center.x - afa*1.0) - (sp->center.x - afa*2),  (sp->center.y + afa*1.3) - (sp->center.y - afa/2) );
 		recs->push_back(r);
 		
 		// se a mao e o ombro estiverem quase na mesma linha, e os x distantes.
 		if (abs(sp->leftHand.y - sp->leftElbow.y)<40  &&  abs(sp->leftHand.x - sp->leftElbow.x)>50) {
 			walkDirection = BACKWARD;
 			printf("BACKWARD\n");
+			changeHand(true);
 		}
 		// se a mao estiver afastada no y, mas nao muito AND mao proximo da linha da cintura.
-		else if (sp->leftHand.x > (sp->center.x - afa*2) && (sp->leftHand.y < (sp->center.y + afa*1.5)) ) {
+		else if (sp->leftHand.x > (sp->center.x - afa*2) && (sp->leftHand.y < (sp->center.y + afa*1.3)) ) {
 			//printf("diff3=%5d\n", (int)Skeleton::euclideanDist(*closest, sp->leftHand));
 			// se a mao tiver perto do ponto mais proximo
 			if (Skeleton::euclideanDist(*closest, sp->leftHand) < 40) {
 				walkDirection = FORWARD;
 				printf("FORWARD\n");
+				changeHand(false);
 			}
 		}
 		//else
@@ -272,28 +286,36 @@ void * Tiago::moveArm(void * t) {
 			ang = aElbow-aShoulder; // subtrai o shoulder do ombro
 	}*/
 
-	ang = tiago->getAngElbow() - tiago->getAngShoulder();
+	ang = abs(tiago->getAngShoulderFront());
+	ang = ang*CV_PI/180.; // conversao do angulo para radianos
+	tiago->jointController->setGoal("arm_1_joint", ang);
 	
-	// JOINT 3 - gira todo o antebraco.
-	if (ang>0)
-		tiago->jointController->setGoal("arm_3_joint", -CV_PI); // gira o braco para cima
-	else
-		tiago->jointController->setGoal("arm_3_joint", 0); // gira o braco para baixo
-
 	
-	ang = ang*ELBOW_90/90.; // conversao do angulo para os valores compativeis com o Tiago.
-	tiago->jointController->setGoal("arm_4_joint", ang);
-
-
 	ang = tiago->getAngShoulder();
-	ang = ang*SHOULDER_45/45.; // conversao do angulo para os valores compativeis com o Tiago.
+	//printf("ang Shoulder ::%.2f\n", ang);
+	ang = ang*CV_PI/180.; // conversao do angulo para radianos
 	tiago->jointController->setGoal("arm_2_joint", ang);
 	
-	if (tiago->getAngShoulderFront()!=0) {
-		tiago->jointController->setGoal("arm_1_joint", tiago->getAngShoulderFront());
+
+	ang = tiago->getAngElbow() - tiago->getAngShoulder();
+	//printf("ang  Elbow   ::%.2f\n", ang);
+	// JOINT 3 - gira todo o antebraco.
+	if (ang>0) {
+		//printf("girando braco para cima\n");
+		tiago->jointController->setGoal("arm_3_joint", -CV_PI); // gira o braco para cima
+	}
+	else {
+		//printf("girando braco para baixo\n");
+		tiago->jointController->setGoal("arm_3_joint", 0); // gira o braco para baixo
 	}
 	
-	// The 2 goals will be executed simultaneously
+	ang = fabs(ang*CV_PI/180.); // conversao do angulo para radianos
+	//printf("ang::%.2f\n", ang)
+	tiago->jointController->setGoal("arm_4_joint", ang);
+	
+
+	
+	// The 4 goals will be executed simultaneously
 	tiago->jointController->execute();
 
 	tiago->setMoving(false);
@@ -363,4 +385,15 @@ int Tiago::getMedianaVector(int vector[]) {
 }
 
 
-
+void Tiago::changeHand(bool open) {
+	if (open) {
+		jointController->setGoal("hand_index", 0);
+		jointController->setGoal("hand_mrl",   0);
+		jointController->setGoal("hand_thumb", 0);
+	} else {
+		jointController->setGoal("hand_index", 6);
+		jointController->setGoal("hand_mrl",   6);
+		jointController->setGoal("hand_thumb", 6);
+	}
+	jointController->execute();
+}

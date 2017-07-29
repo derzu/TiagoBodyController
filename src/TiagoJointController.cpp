@@ -66,6 +66,8 @@ void TiagoJointController::init() {
 		goals[HAND] = initGripperGoal();
 	else
 		goals[HAND] = initHandGoal();
+		
+	
 	
 	lastController = ARM;
 	sendAll = false;
@@ -180,11 +182,11 @@ void TiagoJointController::initGoal(control_msgs::FollowJointTrajectoryGoal &goa
 	for (int j = 0; j < size; ++j)
 	{
 		goal.trajectory.points[index].positions[j] = 0.0;
-		goal.trajectory.points[index].velocities[j] = 0.25;
+		goal.trajectory.points[index].velocities[j] = 0.5;
 	}
 	
 	// To be reached 2 second after starting along the trajectory
-	goal.trajectory.points[index].time_from_start = ros::Duration(2.0);
+	goal.trajectory.points[index].time_from_start = ros::Duration(1.0);
 }
 
 
@@ -310,20 +312,17 @@ void TiagoJointController::execute(bool sendAll) {
 		for (int i=0 ; i< TOT ; i++) {
 			printf("Enviando goal %d\n", i);
 			// Sends the command to start the given trajectory 1s from now
-			goals[i].trajectory.header.stamp = ros::Time::now();// + ros::Duration(1.0);
-			//clients[i]->sendGoal(goals[i]);
+			goals[i].trajectory.header.stamp = ros::Time(0);//ros::Time::now();// + ros::Duration(1.0);
+			clients[i]->sendGoal(goals[i]);
 		}
 	else if (lastController>=0) {
 		// Sends the command to start the given trajectory 1s from now
-		goals[lastController].trajectory.header.stamp = ros::Time::now();// + ros::Duration(1.0);
+		goals[lastController].trajectory.header.stamp = ros::Time(0);//ros::Time::now();// + ros::Duration(1.0);
 		
-		cmd_pub[lastController].publish(goals[lastController].trajectory);
-		ros::spinOnce();
-		//sleep(1);
-		cmd_pub[lastController].publish(goals[lastController].trajectory);
-		ros::spinOnce();
-		//sleep(1);
-		//clients[lastController]->sendGoal(goals[lastController]);
+		//cmd_pub[lastController].publish(goals[lastController].trajectory);
+		//ros::spinOnce();
+
+		clients[lastController]->sendGoal(goals[lastController]);
 		
 		// Wait for trajectory execution
 		/*while( !clients[lastController]->getState().isDone() && ros::ok())
@@ -358,7 +357,7 @@ using namespace std;
 int mainTest(int argc, char** argv)
 {
 	// Create Tiago Controller. true if gripper (steel), false if normal hand (titanium)
-	TiagoJointController *controller = new TiagoJointController(true);
+	TiagoJointController *controller = new TiagoJointController(false);
 
 	// Generates the goal for Joint
 	if (argc==3) {
@@ -369,6 +368,14 @@ int mainTest(int argc, char** argv)
 		printf("Usage examples:\n\tarm_1_joint 1.55\n\thead_2_joint 1.0\n\ttorso_lift_joint 0.33\n\thand_index_joint 1\n\tgripper_right_joint 0\n\tquit\n\n");
 		char joint[20];
 		float f;
+	
+		controller->setGoal("torso_lift", 0.33); // sobe o torso
+		controller->execute();
+		sleep(2);
+		controller->setGoal("arm_2_joint", -1.55); // gira o braco para baixo
+		controller->setGoal("arm_3_joint", -3.14); // gira o braco para fora
+		controller->setGoal("arm_4_joint", 1.55); // antebraco em 90
+		controller->execute();
 	
 		while (argc==1) {
 			cout << "Enter joint and value: ";
@@ -387,4 +394,16 @@ int mainTest(int argc, char** argv)
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
