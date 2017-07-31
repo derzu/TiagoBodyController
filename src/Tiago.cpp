@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <Skeleton.h>
+#include <DrawAux.h>
 
 #define ROSRUN 1
 
@@ -240,7 +241,7 @@ std::vector<cv::Rect> * Tiago::detectTiagoCommands(SkeletonPoints* sp, int afa, 
 		else if (sp->leftHand.x > (sp->center.x - afa*2) && (sp->leftHand.y < (sp->center.y + afa*1.3)) ) {
 			//printf("diff3=%5d\n", (int)Skeleton::euclideanDist(*closest, sp->leftHand));
 			// se a mao tiver perto do ponto mais proximo
-			if (Skeleton::euclideanDist(*closest, sp->leftHand) < 40) {
+			if (DrawAux::euclideanDist(*closest, sp->leftHand) < 40) {
 				walkDirection = FORWARD;
 				printf("FORWARD\n");
 				changeHand(false);
