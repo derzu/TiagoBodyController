@@ -1,8 +1,12 @@
 # TiagoBodyController  
 A body controller ot the Tiago robot.  
-  
+
+# requirements
+- 3D Camrea (DRGB). It works with Orbbec Astra and Asus Xtion, both uses openni driver.  
+- Real or Virtual Tiago Pal-Robotics.  
+- Ubuntu 14.04 with ros environment installed.  
+
 # set environment:
- $ configure all ros development environment on unbunt 14.04  
  $ source ~/Downloads/2-Linux/OpenNI-Linux-x64-2.3/OpenNIDevEnvironment  
  $ source ~/tiago_public_ws/devel/setup.bash  
   
@@ -12,12 +16,12 @@ Download or gitclone the projects TiagoBodyController (https://github.com/derzu/
  $ sh compile.sh  
  
    
-# compile and run Just TiagoJointController
+# compile and run just TiagoJointController
 Edit TiagoJointController.cpp change mainTest() to main()  
  $ g++ TiagoJointController.cpp -o TiagoJointController -I/opt/ros/indigo/include -I../include/ -I. -Iinclude/ -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -pthread -lactionlib  
  $ ./TiagoJointController  
 
-# compile and run Just TiagoBaseController
+# compile and run just TiagoBaseController
 Edit TiagoBaseController.cpp change mainTest() to main()  
  $ g++ TiagoBaseController.cpp -o TiagoBaseController -I/opt/ros/indigo/include -I../include/ -I. -Iinclude/ -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -pthread -lactionlib  
  $ ./TiagoBaseController  
