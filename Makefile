@@ -25,8 +25,8 @@ EXE_NAME = TiagoBodyController
 ROS = -L/opt/ros/indigo/lib -Wl,-rpath,/opt/ros/indigo/lib,--as-needed -lroscpp -lrosconsole -lrostime -lroscpp_serialization -lboost_system -lboost_thread -lactionlib
 
 #opencv
-CFLAGS +=  -g -std=c++11 
-LDFLAGS += -lBodySkeletonTracker $(shell pkg-config --libs --static opencv) $(ROS) -pthread 
+#CFLAGS +=  -g -std=c++11 
+LDFLAGS += -L../BodySkeletonTracker/Bin/x64-Release/ -lBodySkeletonTracker $(shell pkg-config --libs --static opencv) $(ROS)
 
 ifndef OPENNI2_INCLUDE
     $(error OPENNI2_INCLUDE is not defined. Please define it or 'source' the OpenNIDevEnvironment file from the installation)

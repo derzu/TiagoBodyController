@@ -127,7 +127,7 @@ int mainTest2(int argc, char** argv)
 		float d, a;
 	
 		while (argc==1) {
-			cout << "Enter direction and angle value: ";
+			cout << "Enter direction and angle value (-1 to quit): ";
 			cin >> d;
 			if (d<-1)
 				break;

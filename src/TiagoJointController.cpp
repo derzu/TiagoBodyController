@@ -372,9 +372,12 @@ int mainTest(int argc, char** argv)
 		controller->setGoal("torso_lift", 0.33); // sobe o torso
 		controller->execute();
 		sleep(2);
-		controller->setGoal("arm_2_joint", -1.55); // gira o braco para baixo
-		controller->setGoal("arm_3_joint", -3.14); // gira o braco para fora
-		controller->setGoal("arm_4_joint", 1.55); // antebraco em 90
+		// Home position.
+		controller->setGoal("arm_2_joint", -1.34); // gira o braco para baixo
+		controller->setGoal("arm_3_joint", -0.2); // gira o braco para fora
+		controller->setGoal("arm_4_joint", 1.96); // antebraco em 90
+		controller->setGoal("arm_5_joint", -1.56); //
+		controller->setGoal("arm_6_joint", 1.33); //
 		controller->execute();
 	
 		while (argc==1) {
