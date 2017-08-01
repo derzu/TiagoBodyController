@@ -2,9 +2,9 @@
 A body controller ot the Tiago robot.
 
 # set environment:
- $ configure all ros development environment on unbunt 14.04
- $ source ~/Downloads/2-Linux/OpenNI-Linux-x64-2.3/OpenNIDevEnvironment
- $ source ~/tiago_public_ws/devel/setup.bash
+$ configure all ros development environment on unbunt 14.04
+$ source ~/Downloads/2-Linux/OpenNI-Linux-x64-2.3/OpenNIDevEnvironment
+$ source ~/tiago_public_ws/devel/setup.bash
  
 # compile
 Download or gitclone the projects TiagoBodyController (https://github.com/derzu/TiagoBodyController) and BodySkeletonTracker (https://github.com/derzu/BodySkeletonTracker).
