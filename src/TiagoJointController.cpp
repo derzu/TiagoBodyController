@@ -346,7 +346,7 @@ using namespace std;
  * Test the TiagoJointController
  * Rename mainTest to main, to test just this file.
  **/
-int main(int argc, char** argv)
+int mainTest(int argc, char** argv)
 {
 	// Create Tiago Controller. true if gripper (steel), false if normal hand (titanium)
 	TiagoJointController *controller = new TiagoJointController(false);
