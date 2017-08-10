@@ -182,7 +182,7 @@ void TiagoJointController::initGoal(control_msgs::FollowJointTrajectoryGoal &goa
 	for (int j = 0; j < size; ++j)
 	{
 		goal.trajectory.points[index].positions[j] = 0.0;
-		goal.trajectory.points[index].velocities[j] = 0.5;
+		goal.trajectory.points[index].velocities[j] = 0.0;
 	}
 	
 	// To be reached 2 second after starting along the trajectory
@@ -217,15 +217,14 @@ void TiagoJointController::createClients()
 	if ( iterations == max_iterations )
 		throw std::runtime_error("Error in createClients: arm controller action server not available");
 		
-	//cmd_pub = n->advertise<trajectory_msgs::JointTrajectory>("set_joint_trajectory",100);
-	//cmd_pub = n->advertise<trajectory_msgs::JointTrajectory>("controller_manager/",100);
-	cmd_pub[ARM]   = n->advertise<trajectory_msgs::JointTrajectory>("arm_controller/command",1000);
-	cmd_pub[TORSO] = n->advertise<trajectory_msgs::JointTrajectory>("torso_controller/command",1000);
-	cmd_pub[HEAD]  = n->advertise<trajectory_msgs::JointTrajectory>("head_controller/command",1000);
+	// The cmd_put is not being used.
+	cmd_pub[ARM]   = n->advertise<trajectory_msgs::JointTrajectory>("arm_controller/command",100);
+	cmd_pub[TORSO] = n->advertise<trajectory_msgs::JointTrajectory>("torso_controller/command",100);
+	cmd_pub[HEAD]  = n->advertise<trajectory_msgs::JointTrajectory>("head_controller/command",100);
 	if (gripper)
-		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("gripper_controller/command",1000);
+		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("gripper_controller/command",100);
 	else
-		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("hand_controller/command",1000);
+		cmd_pub[HAND] = n->advertise<trajectory_msgs::JointTrajectory>("hand_controller/command",100);
 		
 	ros::Rate loop_rate(10);
 }
@@ -331,13 +330,6 @@ void TiagoJointController::execute(bool sendAll) {
 			ros::Duration(1).sleep(); // sleep for four seconds
 		}*/
 	}
-	
-	// Wait for trajectory execution
-	/*while( (!clients[0]->getState().isDone() || !clients[2]->getState().isDone()) && ros::ok())
-	{
-		printf("Dormindo goal 2\n");
-		ros::Duration(1).sleep(); // sleep for four seconds
-	}*/
 }
 
 
@@ -354,7 +346,7 @@ using namespace std;
  * Test the TiagoJointController
  * Rename mainTest to main, to test just this file.
  **/
-int mainTest(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	// Create Tiago Controller. true if gripper (steel), false if normal hand (titanium)
 	TiagoJointController *controller = new TiagoJointController(false);
